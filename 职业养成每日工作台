@@ -1,0 +1,1665 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>职业养成工作台 · 任务 / 日历 / 成就 / 起卦</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="%230e1416"/><path d="M16 6l9 5-9 5-9-5 9-5z" fill="none" stroke="%23e8a84e" stroke-width="2" stroke-linejoin="round"/><path d="M7 16l9 5 9-5M7 20l9 5 9-5" fill="none" stroke="%235fc4ae" stroke-width="2" stroke-linejoin="round"/></svg>'>
+<style>
+:root{
+  --bg:#0e1416; --bg2:#0b1011; --panel:#162023; --panel2:#1d292c;
+  --line:#2b3a3e; --line-soft:#223033;
+  --text:#ece4d3; --muted:#8fa3a1; --faint:#647776;
+  --gold:#e8a84e; --teal:#5fc4ae; --red:#d9725f; --violet:#9a8bd0; --blue:#6ea8d8;
+  --radius:14px;
+  --mono:"SF Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  line-height:1.55;min-height:100vh;
+  background-image:radial-gradient(900px 500px at 85% -10%,rgba(232,168,78,.07),transparent 60%),radial-gradient(800px 500px at -10% 30%,rgba(95,196,174,.06),transparent 55%);
+}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 18px 80px;}
+button{font-family:inherit;}
+input,select,textarea{font-family:inherit;color:var(--text);}
+
+/* ===== 顶部 ===== */
+header.hero{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;margin-bottom:16px;}
+.hero-left{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:22px 24px;position:relative;overflow:hidden;}
+.hero-left::after{content:"";position:absolute;right:-60px;top:-60px;width:190px;height:190px;border:1px dashed rgba(232,168,78,.16);border-radius:50%;}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;margin-bottom:8px;}
+.hero-left h1{font-size:26px;font-weight:800;margin-bottom:6px;}
+.hero-left h1 em{font-style:normal;color:var(--gold);}
+.hero-left p{color:var(--muted);font-size:13.5px;max-width:54ch;}
+.date-line{margin-top:12px;font-family:var(--mono);font-size:12.5px;color:var(--faint);}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);}
+.hud{padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.hud-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.nick{font-size:16px;font-weight:700;background:transparent;border:1px solid transparent;color:var(--text);border-radius:8px;padding:4px 8px;max-width:150px;}
+.nick:focus{outline:none;border-color:var(--gold);background:var(--bg2);}
+.rank-badge{font-family:var(--mono);font-size:12px;color:var(--bg);background:var(--gold);padding:3px 10px;border-radius:99px;font-weight:700;white-space:nowrap;}
+.xp-block{display:flex;flex-direction:column;gap:6px;}
+.xp-label{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);font-family:var(--mono);}
+.bar{height:10px;border-radius:99px;background:var(--bg2);overflow:hidden;border:1px solid var(--line-soft);}
+.bar>i{display:block;height:100%;border-radius:99px;transition:width .5s cubic-bezier(.2,.8,.2,1);}
+.bar.gold>i{background:linear-gradient(90deg,#c9842f,var(--gold));}
+.hud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.stat{background:var(--bg2);border:1px solid var(--line-soft);border-radius:10px;padding:9px 12px;}
+.stat b{display:block;font-family:var(--mono);font-size:18px;font-weight:700;color:var(--gold);}
+.stat span{font-size:11.5px;color:var(--muted);}
+
+/* ===== 导航 ===== */
+nav.tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:6px;margin-bottom:18px;overflow-x:auto;}
+nav.tabs button{
+  flex:1;min-width:110px;background:transparent;border:none;color:var(--muted);
+  padding:10px 12px;border-radius:10px;font-size:14px;cursor:pointer;white-space:nowrap;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+}
+nav.tabs button svg{width:17px;height:17px;}
+nav.tabs button.active{background:var(--panel2);color:var(--text);font-weight:700;}
+nav.tabs button.active svg{stroke:var(--gold);}
+
+.view{display:none;}
+.view.active{display:block;}
+.section-title{font-size:13px;letter-spacing:.16em;color:var(--muted);font-family:var(--mono);margin:6px 0 12px;text-transform:uppercase;display:flex;align-items:center;gap:10px;}
+.section-title .spacer{flex:1;}
+
+/* ===== 按钮 ===== */
+.btn{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:9px 15px;font-size:13px;cursor:pointer;}
+.btn:hover{filter:brightness(1.12);}
+.btn.primary{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:700;}
+.btn.ghost{background:transparent;}
+.btn.danger{color:var(--red);border-color:rgba(217,114,95,.35);}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:8px;}
+
+/* ===== 任务行 ===== */
+.task-group{margin-bottom:18px;}
+.group-head{display:flex;align-items:center;gap:10px;margin:14px 0 10px;}
+.group-dot{width:10px;height:10px;border-radius:3px;flex:none;}
+.group-name{font-size:15px;font-weight:700;}
+.group-meta{font-size:12px;color:var(--faint);font-family:var(--mono);}
+.task-list{display:flex;flex-direction:column;gap:7px;}
+.task{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:11px;
+  background:var(--bg2);border:1px solid transparent;cursor:pointer;
+}
+.task:hover{border-color:var(--line);}
+.task.done{opacity:.55;}
+.task.done .task-text{text-decoration:line-through;}
+.task input[type=checkbox]{appearance:none;width:18px;height:18px;border:1.5px solid var(--faint);border-radius:6px;flex:none;position:relative;cursor:pointer;}
+.task input[type=checkbox]:checked{background:var(--gold);border-color:var(--gold);}
+.task input[type=checkbox]:checked::after{content:"";position:absolute;left:5.5px;top:2px;width:5px;height:9px;border:solid #0e1416;border-width:0 2px 2px 0;transform:rotate(45deg);}
+.task-main{flex:1;min-width:0;}
+.task-text{font-size:13.5px;}
+.task-sub{font-size:11.5px;color:var(--faint);margin-top:2px;font-family:var(--mono);}
+.task-xp{font-family:var(--mono);font-size:11.5px;color:var(--faint);white-space:nowrap;}
+.task-ops{display:flex;gap:4px;flex:none;}
+.task-ops button{background:transparent;border:none;color:var(--faint);cursor:pointer;padding:5px;border-radius:7px;}
+.task-ops button:hover{color:var(--text);background:var(--panel2);}
+.task-ops svg{width:15px;height:15px;display:block;}
+.empty{padding:26px 14px;text-align:center;color:var(--faint);font-size:13px;border:1px dashed var(--line-soft);border-radius:12px;}
+
+/* ===== 今日布局 ===== */
+.today-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;}
+.side-panel{padding:16px 18px;display:flex;flex-direction:column;gap:12px;}
+.mini-stat{display:flex;justify-content:space-between;align-items:center;background:var(--bg2);border:1px solid var(--line-soft);border-radius:10px;padding:11px 13px;}
+.mini-stat b{font-family:var(--mono);color:var(--gold);}
+.mini-stat span{font-size:12.5px;color:var(--muted);}
+
+/* ===== 日历 ===== */
+.cal-grid{display:grid;grid-template-columns:2fr 1fr;gap:16px;align-items:start;}
+.cal-card{padding:18px;}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;}
+.cal-head h3{font-size:16px;font-weight:700;}
+.cal-nav{display:flex;gap:6px;}
+.cal-week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin-bottom:5px;}
+.cal-week span{text-align:center;font-size:12px;color:var(--faint);font-family:var(--mono);padding:5px 0;}
+.cal-body{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.cal-cell{
+  min-height:86px;background:var(--bg2);border:1px solid var(--line-soft);border-radius:10px;
+  padding:6px 7px;cursor:pointer;display:flex;flex-direction:column;gap:4px;
+}
+.cal-cell:hover{border-color:var(--line);}
+.cal-cell.other{opacity:.32;}
+.cal-cell.today{border-color:var(--gold);}
+.cal-cell.selected{border-color:var(--teal);background:var(--panel2);}
+.cal-date{font-family:var(--mono);font-size:12px;color:var(--muted);}
+.cal-cell.today .cal-date{color:var(--gold);font-weight:700;}
+.cal-dots{display:flex;flex-direction:column;gap:3px;}
+.cal-chip{font-size:10.5px;padding:2px 6px;border-radius:5px;color:#0e1416;font-weight:600;line-height:1.4;overflow:hidden;max-width:100%;white-space:nowrap;text-overflow:ellipsis;}
+.cal-detail{padding:16px 18px;}
+.cal-detail h4{font-size:14px;margin-bottom:12px;}
+.long-list{display:flex;flex-direction:column;gap:14px;margin-top:18px;}
+.long-block h4{font-size:13px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;margin-bottom:8px;}
+
+/* ===== 成就 ===== */
+.ach-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.ach{display:flex;gap:11px;align-items:center;background:var(--bg2);border:1px solid var(--line-soft);border-radius:12px;padding:13px;}
+.ach.locked{opacity:.38;}
+.ach-icon{width:38px;height:38px;flex:none;border-radius:10px;background:var(--panel2);display:flex;align-items:center;justify-content:center;}
+.ach-icon svg{width:21px;height:21px;stroke:var(--muted);}
+.ach.unlocked .ach-icon{background:rgba(232,168,78,.14);}
+.ach.unlocked .ach-icon svg{stroke:var(--gold);}
+.ach b{font-size:13.5px;display:block;}
+.ach span{font-size:11.5px;color:var(--faint);display:block;}
+.ach .prog{font-family:var(--mono);font-size:11px;color:var(--teal);}
+.form-row{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.form-row label{font-size:12.5px;color:var(--muted);}
+.form-row input,.form-row select,.form-row textarea{
+  background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-size:14px;
+}
+.form-row input:focus,.form-row select:focus,.form-row textarea:focus{outline:none;border-color:var(--gold);}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.check-pills{display:flex;flex-wrap:wrap;gap:7px;}
+.check-pills label{display:flex;align-items:center;gap:5px;font-size:13px;color:var(--text);cursor:pointer;background:var(--bg2);border:1px solid var(--line-soft);border-radius:8px;padding:7px 11px;}
+.check-pills input{accent-color:var(--gold);}
+
+/* ===== 赛道管理 ===== */
+.track-manage{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
+.track-card{background:var(--bg2);border:1px solid var(--line-soft);border-radius:13px;padding:16px;display:flex;flex-direction:column;gap:10px;}
+.track-card .t-head{display:flex;align-items:center;gap:10px;}
+.track-card .t-name{font-size:15px;font-weight:700;flex:1;}
+.track-card .t-tag{font-size:11.5px;color:var(--faint);}
+.track-card .t-xp{font-family:var(--mono);font-size:12.5px;color:var(--muted);}
+.color-swatches{display:flex;gap:7px;flex-wrap:wrap;}
+.swatch{width:24px;height:24px;border-radius:7px;cursor:pointer;border:2px solid transparent;}
+.swatch.active{border-color:var(--text);}
+
+/* ===== 起卦 ===== */
+.oracle-box{padding:20px;display:flex;flex-direction:column;gap:18px;}
+.gua-result{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.gua-card{background:var(--bg2);border:1px solid var(--line-soft);border-radius:13px;padding:15px;}
+.gua-card h4{font-size:13px;color:var(--muted);font-family:var(--mono);margin-bottom:10px;letter-spacing:.08em;}
+.gua-lines{display:flex;flex-direction:column-reverse;gap:7px;align-items:center;padding:6px 0;}
+.yao{width:100%;height:11px;border-radius:3px;position:relative;}
+.yao.yang{background:var(--text);}
+.yao.yin{background:linear-gradient(90deg,var(--text) 42%,transparent 42%,transparent 58%,var(--text) 58%);}
+.yao.dong{outline:2px solid var(--gold);outline-offset:2px;}
+.yao-mark{position:absolute;right:-4px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--gold);font-family:var(--mono);}
+.gua-name{font-size:16px;font-weight:700;margin-top:10px;}
+.gua-note{font-size:12.5px;color:var(--muted);margin-top:5px;}
+.interpret{background:var(--bg2);border:1px solid var(--line-soft);border-radius:13px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
+.interpret h4{font-size:13px;color:var(--muted);font-family:var(--mono);letter-spacing:.1em;}
+.interpret p{font-size:13.5px;color:var(--text);}
+.interpret .tag-line{display:flex;gap:8px;flex-wrap:wrap;}
+.tag{font-size:12px;padding:4px 11px;border-radius:99px;background:var(--panel2);color:var(--muted);}
+.tag.good{color:var(--teal);background:rgba(95,196,174,.12);}
+.tag.warn{color:var(--gold);background:rgba(232,168,78,.12);}
+details.fortune{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);overflow:hidden;}
+details.fortune summary{cursor:pointer;padding:16px 18px;display:flex;align-items:center;gap:12px;list-style:none;}
+details.fortune summary::-webkit-details-marker{display:none;}
+details.fortune summary .chev{margin-left:auto;transition:transform .25s;color:var(--muted);}
+details.fortune[open] summary .chev{transform:rotate(90deg);}
+.fortune-body{padding:0 18px 18px;display:flex;flex-direction:column;gap:16px;}
+.bazi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.bazi-cell{background:var(--bg2);border:1px solid var(--line-soft);border-radius:11px;padding:12px;text-align:center;}
+.bazi-cell .pillar{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--gold);}
+.bazi-cell .role{font-size:11.5px;color:var(--muted);margin-top:3px;}
+.bazi-cell .nayin{font-size:11px;color:var(--faint);margin-top:2px;}
+.disclaimer{font-size:12px;color:var(--faint);border-left:2px solid var(--line);padding-left:12px;}
+
+/* ===== AI 设置 / 排盘表单 ===== */
+.ai-status{font-size:12px;font-family:var(--mono);padding:4px 11px;border-radius:99px;}
+.ai-status.on{color:var(--teal);background:rgba(95,196,174,.12);}
+.ai-status.off{color:var(--faint);background:var(--panel2);}
+.provider-note{font-size:12px;color:var(--faint);line-height:1.6;}
+.bazi-form{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.bazi-form .form-row:last-child{grid-column:1/-1;}
+.muted-note{font-size:12.5px;color:var(--muted);margin-top:12px;line-height:1.7;}
+.ai-result{background:var(--bg2);border:1px solid var(--line-soft);border-radius:12px;padding:15px 17px;display:flex;flex-direction:column;gap:9px;font-size:13.5px;line-height:1.75;}
+.ai-result h5{font-size:13.5px;color:var(--gold);margin-top:4px;}
+.ai-result p{font-size:13.5px;}
+.ai-result .ai-foot{font-size:11.5px;color:var(--faint);border-top:1px solid var(--line-soft);padding-top:9px;}
+.ai-loading{display:flex;align-items:center;gap:9px;color:var(--muted);font-size:13px;padding:14px 4px;}
+.spinner{width:15px;height:15px;border:2px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ai-btn-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.ai-hint{font-size:12px;color:var(--faint);}
+.oracle-input-row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;}
+.oracle-input-row .form-row{flex:1;min-width:220px;margin-bottom:0;}
+
+/* ===== 月报 ===== */
+.report-card{background:var(--bg2);border:1px solid var(--line-soft);border-radius:13px;padding:18px;display:flex;flex-direction:column;gap:12px;}
+.report-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.report-bar{display:flex;flex-direction:column;gap:5px;}
+.report-bar .r-label{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);}
+.report-bar .bar>i{height:8px;}
+.report-text{font-size:13.5px;color:var(--text);display:flex;flex-direction:column;gap:8px;}
+.report-text li{margin-left:18px;}
+
+/* ===== 弹窗 ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(5,8,9,.72);display:none;align-items:center;justify-content:center;padding:18px;z-index:40;}
+.modal-mask.show{display:flex;}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;padding:22px;}
+.modal h3{font-size:17px;margin-bottom:16px;}
+.modal-foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+.toast{position:fixed;left:50%;bottom:36px;transform:translateX(-50%) translateY(20px);background:var(--panel2);border:1px solid var(--gold);color:var(--text);padding:10px 18px;border-radius:11px;font-size:13.5px;opacity:0;pointer-events:none;transition:all .3s;z-index:60;max-width:90vw;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast b{color:var(--gold);font-family:var(--mono);}
+
+@media (max-width:900px){
+  header.hero{grid-template-columns:1fr;}
+  .today-grid,.cal-grid{grid-template-columns:1fr;}
+  .ach-grid{grid-template-columns:repeat(2,1fr);}
+  .track-manage{grid-template-columns:1fr;}
+  .gua-result{grid-template-columns:1fr;}
+  .report-grid{grid-template-columns:repeat(2,1fr);}
+  .bazi-form{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .wrap{padding:14px 12px 60px;}
+  .hero-left{padding:18px;}
+  .hero-left h1{font-size:21px;}
+  .bazi-row{grid-template-columns:repeat(2,1fr);}
+  .form-grid{grid-template-columns:1fr;}
+  .cal-cell{min-height:64px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="hero-left">
+      <div class="eyebrow">Quest Board · 任务 / 日历 / 成就 / 起卦</div>
+      <h1>职业养成 <em>工作台</em></h1>
+      <p>任务可按日、周、月与一次性长线安排，日历看板排期，成就与等级驱动持续投入。</p>
+      <div class="date-line" id="dateLine"></div>
+    </div>
+    <div class="card hud">
+      <div class="hud-top">
+        <input class="nick" id="nickInput" maxlength="10" placeholder="点击改名" aria-label="昵称">
+        <span class="rank-badge" id="rankBadge">Lv.1</span>
+      </div>
+      <div class="xp-block">
+        <div class="xp-label"><span id="rankName">见习旅人</span><span id="xpText">0 / 120 XP</span></div>
+        <div class="bar gold"><i id="xpBar" style="width:0%"></i></div>
+      </div>
+      <div class="hud-stats">
+        <div class="stat"><b id="streakStat">0</b><span>连续打卡</span></div>
+        <div class="stat"><b id="todayStat">0</b><span>今日经验</span></div>
+        <div class="stat"><b id="totalStat">0</b><span>累计经验</span></div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs" id="navTabs">
+    <button data-view="today" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18"/></svg>今日任务</button>
+    <button data-view="calendar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 9h18M8 14h3"/></svg>日历看板</button>
+    <button data-view="achievements"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14L7 22l5-3 5 3-1.5-8"/></svg>成就墙</button>
+    <button data-view="tracks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 7h18M3 12h18M3 17h18"/></svg>赛道管理</button>
+    <button data-view="oracle"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 9-7 9-7-9 7-9z"/></svg>天命起卦</button>
+  </nav>
+
+  <section class="view active" id="view-today">
+    <div class="today-grid">
+      <div>
+        <div class="section-title">今日待办 <span class="spacer"></span>
+          <button class="btn primary sm" id="btnNewTaskToday">+ 新建任务</button>
+        </div>
+        <div id="todayList"></div>
+      </div>
+      <aside class="card side-panel">
+        <div class="section-title">今日概览</div>
+        <div class="mini-stat"><span>今日已完成</span><b id="todayDoneStat">0</b></div>
+        <div class="mini-stat"><span>今日待完成</span><b id="todayLeftStat">0</b></div>
+        <div class="mini-stat"><span>本周累计 XP</span><b id="weekXpStat">0</b></div>
+        <div class="mini-stat"><span>长线任务进行中</span><b id="longTaskStat">0</b></div>
+        <button class="btn ghost sm" id="btnNewTaskToday2">新建长线任务</button>
+      </aside>
+    </div>
+  </section>
+
+  <section class="view" id="view-calendar">
+    <div class="cal-grid">
+      <div class="card cal-card">
+        <div class="cal-head">
+          <h3 id="calTitle">日历</h3>
+          <div class="cal-nav">
+            <button class="btn sm" id="calPrev">‹ 上月</button>
+            <button class="btn sm" id="calToday">今天</button>
+            <button class="btn sm" id="calNext">下月 ›</button>
+          </div>
+        </div>
+        <div class="cal-week"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+        <div class="cal-body" id="calBody"></div>
+      </div>
+      <aside class="card cal-detail">
+        <h4 id="calDetailTitle">选择日期查看任务</h4>
+        <div id="calDetailList"></div>
+      </aside>
+    </div>
+    <div class="long-list">
+      <div class="long-block">
+        <h4>本周 · 重复与进行中任务</h4>
+        <div id="weekList"></div>
+      </div>
+      <div class="long-block">
+        <h4>本月 · 月度与一次性长线任务</h4>
+        <div id="monthLongList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-achievements">
+    <div class="section-title">成就墙 <span class="spacer"></span>
+      <button class="btn primary sm" id="btnNewAch">+ 自定义成就</button>
+    </div>
+    <div class="ach-grid" id="achGrid"></div>
+    <div style="margin-top:20px" class="card side-panel">
+      <div class="section-title">月度军师 · 本地规则复盘与规划</div>
+      <div class="report-card" id="reportCard">
+        <p style="font-size:13px;color:var(--muted)">每月一次：自动统计完成量、赛道分布与短板，生成下月建议并发放月度成就。</p>
+        <button class="btn primary" id="btnMonthlyReview">生成本月复盘报告</button>
+        <div id="reportBody"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="view" id="view-tracks">
+    <div class="section-title">赛道阵营 <span class="spacer"></span>
+      <button class="btn primary sm" id="btnNewTrack">+ 新建赛道</button>
+    </div>
+    <div class="track-manage" id="trackManage"></div>
+  </section>
+
+  <section class="view" id="view-oracle">
+    <details class="fortune" id="aiSettingsPanel" style="margin-bottom:16px">
+      <summary>
+        <div class="eyebrow" style="margin:0;">AI 解读设置 · 可选</div>
+        <span style="font-size:15px;font-weight:600;" id="aiStatusText">本地模式 · 未配置 API Key</span>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </summary>
+      <div class="fortune-body">
+        <div class="form-grid">
+          <div class="form-row"><label>服务商</label>
+            <select id="aiProvider">
+              <option value="doubao">豆包 · 火山方舟</option>
+              <option value="deepseek">DeepSeek</option>
+              <option value="bailian">阿里云百炼（通义）</option>
+            </select>
+          </div>
+          <div class="form-row"><label>模型 / 接入点 ID（留空用默认）</label>
+            <input id="aiModel" placeholder="默认模型名">
+          </div>
+        </div>
+        <div class="form-row"><label>API Key</label>
+          <input id="aiKey" type="password" autocomplete="off" placeholder="粘贴 Key；留空则始终使用本地计算结果，不调用大模型">
+        </div>
+        <p class="provider-note" id="aiProviderNote"></p>
+        <div class="form-row"><label>解读方向（读取当前赛道模块，可勾选；赛道增删后在此自动刷新）</label>
+          <div class="check-pills" id="aiDirPills"></div>
+        </div>
+        <div class="form-row"><label>补充方向（自定义，每行一个，可选）</label>
+          <textarea id="aiCustomDirs" rows="2" placeholder="例：自由插画接单"></textarea>
+        </div>
+        <div class="ai-btn-row">
+          <button class="btn primary sm" id="btnSaveAi">保存设置</button>
+          <span class="ai-status off" id="aiStatusBadge">本地模式</span>
+        </div>
+        <p class="ai-hint">Key 仅保存在本机浏览器 localStorage，不会上传到其他服务器；若浏览器对第三方接口有跨域限制，需在网络环境允许时使用。</p>
+      </div>
+    </details>
+
+    <div class="card oracle-box">
+      <div class="section-title">梅花易数 · 数字起卦（本地计算，离线内置卦库）</div>
+      <div class="oracle-input-row">
+        <div class="form-row">
+          <label>起卦数字（两数空格分开如 13 53；三个数如 13 5 3；一串数字自动对半分）</label>
+          <input id="guaInput" placeholder="1353" autocomplete="off">
+        </div>
+        <button class="btn primary" id="btnGuaCast">起卦</button>
+      </div>
+      <div id="guaResult" style="display:none">
+        <div class="gua-result" id="guaCards"></div>
+        <div class="interpret" id="guaInterpret" style="margin-top:14px"></div>
+        <div id="guaAiBlock" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <details class="fortune" id="fortunePanel" style="margin-top:16px">
+      <summary>
+        <div class="eyebrow" style="margin:0;">八字参考 · 民俗娱乐</div>
+        <span style="font-size:15px;font-weight:600;">生辰排盘 · 方向研判</span>
+        <svg class="chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </summary>
+      <div class="fortune-body">
+        <div class="bazi-form">
+          <div class="form-row"><label>出生日期</label><input type="date" id="bzDate"></div>
+          <div class="form-row"><label>出生时辰</label><select id="bzHour"></select></div>
+          <div class="form-row"><label>出生地（仅作记录与提示文字，不参与排盘计算）</label><input id="bzPlace" placeholder="例：江苏南京" autocomplete="off"></div>
+        </div>
+        <div class="ai-btn-row" style="margin-top:4px">
+          <button class="btn primary" id="btnBaziCast">本地排盘</button>
+          <span class="ai-hint" id="bzMeta"></span>
+        </div>
+        <div id="bzResult" style="display:none">
+          <div class="bazi-row" id="bzPillars" style="margin-top:14px"></div>
+          <p class="muted-note" id="bzLocalNote"></p>
+          <div id="bzAiBlock" style="margin-top:14px"></div>
+        </div>
+        <p class="disclaimer" style="margin-top:16px">说明：八字、卦象与研判均为民俗文化娱乐内容，不构成职业决策依据；方向选择应以现实条件与机会成本为准。</p>
+      </div>
+    </details>
+  </section>
+
+</div>
+
+<div class="modal-mask" id="taskModalMask">
+  <div class="modal">
+    <h3 id="taskModalTitle">新建任务</h3>
+    <div class="form-row"><label>任务名称</label><input id="fText" placeholder="例：雅思词汇 30 个"></div>
+    <div class="form-grid">
+      <div class="form-row"><label>所属赛道</label><select id="fTrack"></select></div>
+      <div class="form-row"><label>经验值 XP</label><input id="fXp" type="number" min="5" max="200" value="20"></div>
+    </div>
+    <div class="form-row"><label>重复规则</label>
+      <select id="fRepeat">
+        <option value="daily">每日重复</option>
+        <option value="weekly">每周重复</option>
+        <option value="monthly">每月重复</option>
+        <option value="once">一次性长线任务</option>
+      </select>
+    </div>
+    <div class="form-row" id="fWeekRow" style="display:none"><label>每周几（可多选）</label>
+      <div class="check-pills" id="fWeekPills"></div>
+    </div>
+    <div class="form-row" id="fMonthRow" style="display:none"><label>每月几号</label><select id="fMonthDay"></select></div>
+    <div class="form-grid" id="fDateRow" style="display:none">
+      <div class="form-row"><label>开始日期</label><input type="date" id="fStart"></div>
+      <div class="form-row"><label>截止日期（长线任务可留空）</label><input type="date" id="fDue"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn danger" id="fDelete" style="margin-right:auto;display:none">删除任务</button>
+      <button class="btn ghost" id="fCancel">取消</button>
+      <button class="btn primary" id="fSave">保存任务</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="trackModalMask">
+  <div class="modal">
+    <h3 id="trackModalTitle">新建赛道</h3>
+    <div class="form-row"><label>赛道名称</label><input id="tName" placeholder="例：海外博士"></div>
+    <div class="form-row"><label>一句话定位</label><input id="tTag" placeholder="例：主线 · 三校申请"></div>
+    <div class="form-row"><label>目标累计 XP</label><input id="tGoal" type="number" min="50" value="500"></div>
+    <div class="form-row"><label>标识颜色</label><div class="color-swatches" id="tColors"></div></div>
+    <div class="modal-foot">
+      <button class="btn danger" id="tDelete" style="margin-right:auto;display:none">删除赛道</button>
+      <button class="btn ghost" id="tCancel">取消</button>
+      <button class="btn primary" id="tSave">保存赛道</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-mask" id="achModalMask">
+  <div class="modal">
+    <h3>自定义成就</h3>
+    <div class="form-row"><label>成就名称</label><input id="aName" placeholder="例：月更达人"></div>
+    <div class="form-row"><label>描述</label><input id="aDesc" placeholder="例：连续 30 天发布作品"></div>
+    <div class="form-grid">
+      <div class="form-row"><label>达成条件</label>
+        <select id="aType">
+          <option value="xp">累计 XP 达到</option>
+          <option value="streak">连续打卡达到</option>
+          <option value="count">完成任务总数达到</option>
+        </select>
+      </div>
+      <div class="form-row"><label>目标数值</label><input id="aTarget" type="number" min="1" value="100"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="aCancel">取消</button>
+      <button class="btn primary" id="aSave">保存成就</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= 常量 ================= */
+const STORAGE_KEY = "quest_workbench_v2";
+const TRACK_COLORS = ["#e8a84e","#5fc4ae","#9a8bd0","#d9725f","#6ea8d8","#c98a5e"];
+const WEEK_NAMES = ["周一","周二","周三","周四","周五","周六","周日"];
+const RANKS = [
+  {xp:0,name:"见习旅人"},{xp:120,name:"制图学徒"},{xp:300,name:"熟练匠人"},
+  {xp:600,name:"新锐创作者"},{xp:1000,name:"独立策划"},{xp:1600,name:"资深顾问"},
+  {xp:2400,name:"领域新星"},{xp:3400,name:"专家导师"},{xp:4600,name:"门内名家"},
+  {xp:6000,name:"一代宗师"}
+];
+const REPEAT_LABEL = {daily:"每日", weekly:"每周", monthly:"每月", once:"一次性"};
+
+/* ================= AI 服务商配置 ================= */
+const AI_STORAGE_KEY = "quest_ai_v1";
+const AI_PROVIDERS = {
+  doubao: {
+    name:"豆包 · 火山方舟",
+    endpoint:"https://ark.cn-beijing.volces.com/api/v3/chat/completions",
+    defaultModel:"doubao-pro-32k",
+    note:"模型 ID 填火山方舟接入点 ID（形如 ep-xxxxxxxx）或具体模型名；API Key 在火山方舟控制台「API Key 管理」获取。"
+  },
+  deepseek: {
+    name:"DeepSeek",
+    endpoint:"https://api.deepseek.com/chat/completions",
+    defaultModel:"deepseek-chat",
+    note:"模型可填 deepseek-chat（通用对话）或 deepseek-reasoner（深度推理）；API Key 在 platform.deepseek.com 获取。"
+  },
+  bailian: {
+    name:"阿里云百炼（通义）",
+    endpoint:"https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+    defaultModel:"qwen-plus",
+    note:"走 OpenAI 兼容模式；模型可填 qwen-plus、qwen-max、qwen-turbo 等；API Key 在百炼控制台获取。"
+  }
+};
+function defaultAi(){
+  return {provider:"deepseek", apiKey:"", model:"", dirs:null, customDirs:"", birth:{date:"",hour:2,place:""}};
+}
+function loadAi(){
+  try{
+    const raw = localStorage.getItem(AI_STORAGE_KEY);
+    if(!raw) return defaultAi();
+    const p = JSON.parse(raw);
+    return Object.assign(defaultAi(), p, {birth:Object.assign(defaultAi().birth, p.birth||{})});
+  }catch(e){ return defaultAi(); }
+}
+function saveAi(){ try{ localStorage.setItem(AI_STORAGE_KEY, JSON.stringify(aiSettings)); }catch(e){} }
+function aiEnabled(){ return !!aiSettings.apiKey.trim(); }
+function currentProvider(){ return AI_PROVIDERS[aiSettings.provider]||AI_PROVIDERS.deepseek; }
+/* 当前解读方向：选中的赛道 + 自定义补充，随模块增删动态读取 */
+function currentDirections(){
+  const trackDirs = state.tracks
+    .filter(t => aiSettings.dirs===null || aiSettings.dirs.includes(t.id))
+    .map(t => ({name:t.name, tag:t.tag||"", source:"赛道"}));
+  const custom = aiSettings.customDirs.split(/\r?\n/).map(s=>s.trim()).filter(Boolean)
+    .map(s => ({name:s, tag:"", source:"自定义"}));
+  return [...trackDirs, ...custom];
+}
+
+/* ================= 默认数据 ================= */
+function defaultState(){
+  const tracks = [
+    {id:"phd",   name:"海外博士",   tag:"主线 · 三校申请", color:"#e8a84e", goal:1000},
+    {id:"media", name:"设计师自媒体", tag:"现金流支线 · 传播", color:"#5fc4ae", goal:600},
+    {id:"civil", name:"考公考编",   tag:"保底支线 · 晚成", color:"#9a8bd0", goal:400},
+    {id:"teach", name:"数字媒体教师", tag:"过渡资产 · 配印", color:"#d9725f", goal:400}
+  ];
+  const tasks = [
+    {id:"p1",trackId:"phd",text:"雅思词汇 30 个（句子里记）",xp:20,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"p2",trackId:"phd",text:"听力或精读 30 分钟",xp:20,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"p3",trackId:"phd",text:"作品集整理或迭代 1 项",xp:20,repeat:"weekly",weekDays:[2,5],monthDay:1,start:"",due:"",done:{}},
+    {id:"p4",trackId:"phd",text:"精读 1 篇目标导师论文并记笔记",xp:25,repeat:"weekly",weekDays:[7],monthDay:1,start:"",due:"",done:{}},
+    {id:"p5",trackId:"phd",text:"套磁信起草 / 跟进（长线推进到 12 月申请）",xp:30,repeat:"once",weekDays:[],monthDay:1,start:"2026-10-26",due:"2027-12-01",done:{}},
+    {id:"p6",trackId:"phd",text:"RP 或文献笔记写 300 字",xp:25,repeat:"weekly",weekDays:[3,6],monthDay:1,start:"",due:"",done:{}},
+    {id:"m1",trackId:"media",text:"完成 1 条图文 / 视频作品发布",xp:30,repeat:"weekly",weekDays:[6],monthDay:1,start:"",due:"",done:{}},
+    {id:"m2",trackId:"media",text:"素材拍摄或剪辑 30 分钟",xp:20,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"m3",trackId:"media",text:"选题策划与文案 1 条",xp:15,repeat:"monthly",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"m4",trackId:"media",text:"评论区与粉丝互动 20 分钟",xp:10,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"c1",trackId:"civil",text:"听完考编网课 1 节",xp:20,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"c2",trackId:"civil",text:"刷题一组（30 题）",xp:20,repeat:"daily",weekDays:[],monthDay:1,start:"",due:"",done:{}},
+    {id:"c3",trackId:"civil",text:"当日错题复盘",xp:15,repeat:"weekly",weekDays:[7],monthDay:1,start:"",due:"",done:{}},
+    {id:"t1",trackId:"teach",text:"课件 / 教案打磨 1 份",xp:20,repeat:"monthly",weekDays:[],monthDay:15,start:"",due:"",done:{}},
+    {id:"t2",trackId:"teach",text:"试讲或说课练习 20 分钟",xp:15,repeat:"weekly",weekDays:[4],monthDay:1,start:"",due:"",done:{}}
+  ];
+  return {
+    nickname:"旅人", totalXP:0, todayXP:0, streak:0, lastActive:"",
+    tracks, tasks,
+    counters:{all:0, perTrack:{}, dayXp:{}, weekXp:0, weekKey:""},
+    achUnlocked:[], customAch:[], reviewMonth:""
+  };
+}
+
+/* ================= 状态读写 ================= */
+let state = defaultState();
+function load(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return;
+    const p = JSON.parse(raw);
+    const d = defaultState();
+    state = Object.assign(d, p);
+    state.counters = Object.assign(d.counters, p.counters||{});
+    state.counters.perTrack = Object.assign({}, p.counters?.perTrack||{});
+    state.counters.dayXp = Object.assign({}, p.counters?.dayXp||{});
+    state.customAch = p.customAch||[];
+    state.achUnlocked = p.achUnlocked||[];
+  }catch(e){ state = defaultState(); }
+}
+function save(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+
+/* ================= 日期工具 ================= */
+function pad(n){ return String(n).padStart(2,"0"); }
+function dateStr(d){ return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); }
+function todayDate(){ return new Date(); }
+function todayStr(){ return dateStr(todayDate()); }
+function isoWeekDay(d){ const g = d.getDay(); return g===0?7:g; } // 1=周一…7=周日
+function weekKey(d){ const x=new Date(d); x.setDate(x.getDate()-isoWeekDay(x)+1); return dateStr(x).slice(0,8); }
+function inRange(task, ds){
+  if(task.start && ds < task.start) return false;
+  if(task.due && ds > task.due) return false;
+  return true;
+}
+function taskOnDate(task, d){
+  if(!inRange(task, dateStr(d))) return false;
+  const ds = dateStr(d);
+  if(task.repeat==="daily") return true;
+  if(task.repeat==="weekly") return task.weekDays.includes(isoWeekDay(d));
+  if(task.repeat==="monthly") return d.getDate()===task.monthDay;
+  if(task.repeat==="once") return true;
+  return false;
+}
+function isDone(task, ds){ return task.done && task.done[ds]===true; }
+function resetDailyRoll(){
+  const today = todayStr();
+  if(state.lastActive === today) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  state.streak = (state.lastActive === dateStr(y)) ? state.streak+1 : 1;
+  state.lastActive = today;
+  const wk = weekKey(todayDate());
+  if(state.counters.weekKey !== wk){ state.counters.weekKey = wk; state.counters.weekXp = 0; }
+  save();
+}
+
+/* ================= 基础计算 ================= */
+function rankOf(xp){
+  let cur = RANKS[0];
+  RANKS.forEach(r=>{ if(xp>=r.xp) cur=r; });
+  const idx = RANKS.indexOf(cur);
+  return {cur, next:RANKS[idx+1], idx};
+}
+function trackById(id){ return state.tracks.find(t=>t.id===id); }
+function todayTasks(){
+  const d = todayDate(), ds = dateStr(d);
+  return state.tasks.filter(t=>taskOnDate(t,d));
+}
+function taskSub(task){
+  if(task.repeat==="daily") return "每日重复";
+  if(task.repeat==="weekly") return "每周 "+task.weekDays.map(w=>WEEK_NAMES[w-1]).join("、");
+  if(task.repeat==="monthly") return "每月 "+task.monthDay+" 日";
+  return "一次性长线"+(task.due?" · 截止 "+task.due:"");
+}
+
+/* ================= 渲染：HUD ================= */
+function renderDate(){
+  const d = todayDate();
+  const wk = ["日","一","二","三","四","五","六"][d.getDay()];
+  document.getElementById("dateLine").textContent =
+    `今天 ${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())} 星期${wk} · 任务每日按规则刷新`;
+  document.getElementById("nickInput").value = state.nickname;
+}
+function renderHUD(){
+  const r = rankOf(state.totalXP);
+  document.getElementById("rankBadge").textContent = "Lv."+(r.idx+1);
+  document.getElementById("rankName").textContent = r.cur.name;
+  const ds = todayStr();
+  const todayXp = state.counters.dayXp[ds]||0;
+  if(r.next){
+    document.getElementById("xpText").textContent = `${state.totalXP} / ${r.next.xp} XP`;
+    document.getElementById("xpBar").style.width = Math.min(100,Math.round((state.totalXP-r.cur.xp)/(r.next.xp-r.cur.xp)*100))+"%";
+  }else{
+    document.getElementById("xpText").textContent = `${state.totalXP} XP · 已满级`;
+    document.getElementById("xpBar").style.width = "100%";
+  }
+  document.getElementById("streakStat").textContent = state.streak;
+  document.getElementById("todayStat").textContent = todayXp;
+  document.getElementById("totalStat").textContent = state.totalXP;
+}
+
+/* ================= 渲染：今日列表 ================= */
+function taskRow(task, ds){
+  const tr = trackById(task.trackId)||{color:"#888",name:"未分组"};
+  const done = isDone(task, ds);
+  return `
+  <label class="task ${done?"done":""}" data-task="${task.id}" data-date="${ds}">
+    <input type="checkbox" ${done?"checked":""}>
+    <span style="width:8px;height:8px;border-radius:50%;background:${tr.color};flex:none"></span>
+    <div class="task-main">
+      <div class="task-text">${escapeHtml(task.text)}</div>
+      <div class="task-sub">${escapeHtml(tr.name)} · ${taskSub(task)} · +${task.xp} XP</div>
+    </div>
+    <span class="task-xp">+${task.xp}</span>
+    <span class="task-ops">
+      <button class="edit-btn" data-edit="${task.id}" title="编辑"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+    </span>
+  </label>`;
+}
+function renderToday(){
+  const ds = todayStr();
+  const list = todayTasks();
+  const doneN = list.filter(t=>isDone(t,ds)).length;
+  document.getElementById("todayDoneStat").textContent = doneN;
+  document.getElementById("todayLeftStat").textContent = list.length-doneN;
+  document.getElementById("weekXpStat").textContent = state.counters.weekXp;
+  document.getElementById("longTaskStat").textContent = state.tasks.filter(t=>t.repeat==="once"&&inRange(t,ds)).length;
+
+  const box = document.getElementById("todayList");
+  if(!list.length){ box.innerHTML = `<div class="empty">今天没有安排任务，点击右上角新建。</div>`; return; }
+  // 按赛道分组
+  const groups = {};
+  list.forEach(t=>{ (groups[t.trackId]=groups[t.trackId]||[]).push(t); });
+  box.innerHTML = state.tracks.filter(tr=>groups[tr.id]).map(tr=>`
+    <div class="task-group">
+      <div class="group-head">
+        <span class="group-dot" style="background:${tr.color}"></span>
+        <span class="group-name">${escapeHtml(tr.name)}</span>
+        <span class="group-meta">${groups[tr.id].filter(x=>isDone(x,ds)).length}/${groups[tr.id].length} 完成</span>
+      </div>
+      <div class="task-list">${groups[tr.id].map(t=>taskRow(t,ds)).join("")}</div>
+    </div>`).join("");
+}
+
+/* ================= 渲染：日历 ================= */
+let calCursor = new Date();
+let selectedDate = todayStr();
+function renderCalendar(){
+  const y = calCursor.getFullYear(), m = calCursor.getMonth();
+  document.getElementById("calTitle").textContent = `${y} 年 ${m+1} 月`;
+  const first = new Date(y,m,1);
+  const startPad = isoWeekDay(first)-1; // 周一起始
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const body = document.getElementById("calBody");
+  let html = "";
+  for(let i=0;i<42;i++){
+    const dayNum = i-startPad+1;
+    const d = new Date(y,m,dayNum);
+    const ds = dateStr(d);
+    const inMonth = dayNum>=1 && dayNum<=daysInMonth;
+    const dayTasks = state.tasks.filter(t=>taskOnDate(t,d));
+    const chips = dayTasks.slice(0,3).map(t=>{
+      const tr = trackById(t.trackId)||{color:"#888"};
+      return `<div class="cal-chip" style="background:${tr.color}">${escapeHtml(t.text.slice(0,9))}</div>`;
+    }).join("");
+    const more = dayTasks.length>3?`<div class="cal-chip" style="background:#334246">+${dayTasks.length-3}</div>`:"";
+    const cls = ["cal-cell"];
+    if(!inMonth) cls.push("other");
+    if(ds===todayStr()) cls.push("today");
+    if(ds===selectedDate) cls.push("selected");
+    html += `<div class="${cls.join(" ")}" data-date="${ds}">
+      <div class="cal-date">${inMonth?dayNum:""}</div>
+      <div class="cal-dots">${chips}${more}</div>
+    </div>`;
+  }
+  body.innerHTML = html;
+  renderCalDetail();
+  renderLongLists();
+}
+function renderCalDetail(){
+  const d = new Date(selectedDate+"T00:00:00");
+  document.getElementById("calDetailTitle").textContent = selectedDate;
+  const list = state.tasks.filter(t=>taskOnDate(t,d));
+  const box = document.getElementById("calDetailList");
+  if(!list.length){ box.innerHTML = `<div class="empty">这一天没有安排任务。</div>`; return; }
+  box.innerHTML = `<div class="task-list">${list.map(t=>taskRow(t,selectedDate)).join("")}</div>`;
+}
+function renderLongLists(){
+  const ds = todayStr();
+  const d = todayDate();
+  const weekly = state.tasks.filter(t=>t.repeat==="weekly"&&inRange(t,ds));
+  const once = state.tasks.filter(t=>t.repeat==="once"&&inRange(t,ds));
+  document.getElementById("weekList").innerHTML = weekly.length
+    ? `<div class="task-list">${weekly.map(t=>taskRow(t,ds)).join("")}</div>`
+    : `<div class="empty">暂无每周重复任务。</div>`;
+  const monthly = state.tasks.filter(t=>t.repeat==="monthly"&&inRange(t,ds));
+  const all = [...monthly,...once];
+  document.getElementById("monthLongList").innerHTML = all.length
+    ? `<div class="task-list">${all.map(t=>taskRow(t,ds)).join("")}</div>`
+    : `<div class="empty">暂无月度或一次性长线任务。</div>`;
+}
+
+/* ================= 渲染：赛道管理 ================= */
+function renderTracks(){
+  const box = document.getElementById("trackManage");
+  box.innerHTML = state.tracks.map(tr=>{
+    const xp = state.counters.perTrack[tr.id]||0;
+    const pct = Math.min(100,Math.round(xp/tr.goal*100));
+    const n = state.tasks.filter(t=>t.trackId===tr.id).length;
+    return `
+    <div class="track-card">
+      <div class="t-head">
+        <span class="group-dot" style="background:${tr.color};width:12px;height:12px;border-radius:4px"></span>
+        <span class="t-name">${escapeHtml(tr.name)}</span>
+      </div>
+      <div class="t-tag">${escapeHtml(tr.tag||"")}</div>
+      <div class="t-xp">${xp} / ${tr.goal} XP · ${n} 个任务</div>
+      <div class="bar"><i style="width:${pct}%;background:${tr.color}"></i></div>
+      <div style="display:flex;gap:8px">
+        <button class="btn sm" data-track-edit="${tr.id}">编辑赛道</button>
+        <button class="btn sm ghost" data-track-newtask="${tr.id}">+ 新建任务</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+/* ================= 工具 ================= */
+function escapeHtml(s){ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function uid(){ return "id"+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+let toastTimer;
+function toast(html){
+  const el = document.getElementById("toast");
+  el.innerHTML = html; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(()=>el.classList.remove("show"),1900);
+}
+
+/* ================= XP 结算 ================= */
+function grant(xp, trackId){
+  state.totalXP += xp;
+  const ds = todayStr();
+  state.counters.dayXp[ds] = (state.counters.dayXp[ds]||0)+xp;
+  state.counters.weekXp += xp;
+  state.counters.all += 1;
+  if(trackId){
+    state.counters.perTrack[trackId] = (state.counters.perTrack[trackId]||0)+xp;
+  }
+}
+function revoke(xp, trackId){
+  state.totalXP = Math.max(0,state.totalXP-xp);
+  const ds = todayStr();
+  state.counters.dayXp[ds] = Math.max(0,(state.counters.dayXp[ds]||0)-xp);
+  state.counters.weekXp = Math.max(0,state.counters.weekXp-xp);
+  state.counters.all = Math.max(0,state.counters.all-1);
+  if(trackId) state.counters.perTrack[trackId] = Math.max(0,(state.counters.perTrack[trackId]||0)-xp);
+}
+
+/* ================= 成就系统 ================= */
+const BASE_ACH = [
+  {id:"a1",  name:"初入江湖", desc:"完成任意 1 个任务", type:"count", target:1},
+  {id:"a2",  name:"小有积累", desc:"累计完成 10 个任务", type:"count", target:10},
+  {id:"a3",  name:"勤勉之人", desc:"累计完成 50 个任务", type:"count", target:50},
+  {id:"a4",  name:"百折不挠", desc:"累计完成 100 个任务", type:"count", target:100},
+  {id:"a5",  name:"勤奋不倦", desc:"累计完成 200 个任务", type:"count", target:200},
+  {id:"a6",  name:"积跬步", desc:"累计 XP 达 100", type:"xp", target:100},
+  {id:"a7",  name:"聚沙塔", desc:"累计 XP 达 500", type:"xp", target:500},
+  {id:"a8",  name:"千里行", desc:"累计 XP 达 2000", type:"xp", target:2000},
+  {id:"a9",  name:"厚积薄发", desc:"累计 XP 达 5000", type:"xp", target:5000},
+  {id:"a10", name:"三级台阶", desc:"连续打卡 3 天", type:"streak", target:3},
+  {id:"a11", name:"七日连战", desc:"连续打卡 7 天", type:"streak", target:7},
+  {id:"a12", name:"半月坚持", desc:"连续打卡 14 天", type:"streak", target:14},
+  {id:"a13", name:"月度不断", desc:"连续打卡 30 天", type:"streak", target:30},
+  {id:"a14", name:"百日历程", desc:"连续打卡 100 天", type:"streak", target:100},
+  {id:"a15", name:"问道学府", desc:"博士赛道完成 10 次", type:"track", target:10, trackId:"phd"},
+  {id:"a16", name:"笔耕不辍", desc:"自媒体赛道完成 3 次", type:"track", target:3, trackId:"media"},
+  {id:"a17", name:"稳步推进", desc:"考编赛道完成 10 次", type:"track", target:10, trackId:"civil"},
+  {id:"a18", name:"讲台初立", desc:"教师赛道完成 10 次", type:"track", target:10, trackId:"teach"},
+  {id:"a19", name:"长线攻坚", desc:"完成 1 个一次性长线任务", type:"onceDone", target:1},
+  {id:"a20", name:"首次复盘", desc:"完成一次月度军师复盘", type:"review", target:1},
+  {id:"a21", name:"单月三十", desc:"当月完成 30 个任务", type:"monthCount", target:30},
+  {id:"a22", name:"单月千金", desc:"当月获取 1000 XP", type:"monthXp", target:1000}
+];
+function monthKey(){ return todayStr().slice(0,7); }
+function normalizeCounters(){
+  const c = state.counters;
+  c.perTrackCount = c.perTrackCount||{};
+  c.monthCount = c.monthCount||{};
+  if(!c.perTrack) c.perTrack = {};
+  if(!c.dayXp) c.dayXp = {};
+}
+function monthStats(){
+  const mk = monthKey();
+  let mXp = 0;
+  Object.keys(state.counters.dayXp).forEach(k=>{ if(k.startsWith(mk)) mXp += state.counters.dayXp[k]; });
+  return { xp:mXp, count: state.counters.monthCount[mk]||0 };
+}
+function achValue(ach){
+  normalizeCounters();
+  const ms = monthStats();
+  switch(ach.type){
+    case "xp": return state.totalXP;
+    case "streak": return state.streak;
+    case "count": return state.counters.all;
+    case "track": return state.counters.perTrackCount[ach.trackId]||0;
+    case "onceDone": return state.tasks.filter(t=>t.repeat==="once"&&t.done&&Object.keys(t.done).length).length;
+    case "review": return state.reviewMonth?1:0;
+    case "monthCount": return ms.count;
+    case "monthXp": return ms.xp;
+    default: return 0;
+  }
+}
+function checkAchievements(){
+  const all = [...BASE_ACH, ...state.customAch];
+  all.forEach(a=>{
+    if(state.achUnlocked.includes(a.id)) return;
+    if(achValue(a) >= a.target){
+      state.achUnlocked.push(a.id);
+      toast(`解锁成就 · <b>${escapeHtml(a.name)}</b>`);
+    }
+  });
+}
+const ACH_ICONS = '<svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/></svg>';
+function renderAchievements(){
+  const grid = document.getElementById("achGrid");
+  const all = [...BASE_ACH, ...state.customAch];
+  grid.innerHTML = all.map(a=>{
+    const un = state.achUnlocked.includes(a.id);
+    const v = Math.min(a.target, achValue(a));
+    const prog = a.type==="review" ? "" : `<div class="prog">${v} / ${a.target}</div>`;
+    return `<div class="ach ${un?"unlocked":"locked"}">
+      <div class="ach-icon">${ACH_ICONS}</div>
+      <div><b>${escapeHtml(a.name)}</b><span>${escapeHtml(a.desc)}</span>${prog}</div>
+    </div>`;
+  }).join("");
+}
+
+/* ================= 月度军师 ================= */
+function renderReview(){
+  const box = document.getElementById("reportBody");
+  const mk = monthKey();
+  if(state.reviewMonth !== mk){ box.innerHTML = ""; return; }
+  const ms = monthStats();
+  normalizeCounters();
+  const longN = state.tasks.filter(t=>t.repeat==="once"&&inRange(t,todayStr())).length;
+  // 赛道分布
+  const rows = state.tracks.map(tr=>{
+    const c = state.counters.perTrackCount[tr.id]||0;
+    return {tr, c};
+  }).sort((a,b)=>b.c-a.c);
+  const maxC = Math.max(1,...rows.map(r=>r.c));
+  const bars = rows.map(r=>`
+    <div class="report-bar">
+      <div class="r-label"><span>${escapeHtml(r.tr.name)}</span><span>${r.c} 次</span></div>
+      <div class="bar"><i style="width:${Math.round(r.c/maxC*100)}%;background:${r.tr.color}"></i></div>
+    </div>`).join("");
+  const weakest = rows[rows.length-1];
+  const tips = [];
+  tips.push(`本月累计 <b>${ms.xp} XP</b>、完成 <b>${ms.count}</b> 个任务，当前连续打卡 <b>${state.streak}</b> 天。`);
+  if(weakest && weakest.c===0){
+    tips.push(`「${escapeHtml(weakest.tr.name)}」本月尚未推进，建议下月把它设为保底支线，每天先完成 1 个最小任务破冰。`);
+  }else if(weakest){
+    tips.push(`投入最少的是「${escapeHtml(weakest.tr.name)}」（${weakest.c} 次），下月可在日历上为它固定 2 个时间槽，避免被主线挤掉。`);
+  }
+  if(state.streak<3) tips.push(`连击还短，优先保住每日最低限度的一件小事，比偶尔冲刺更能维持状态。`);
+  tips.push(`长线任务保留 ${longN} 项在推进中，建议每月复盘时核对截止日期，临近的提前两周拆成小步骤。`);
+  box.innerHTML = `
+    <div class="report-grid">
+      <div class="stat"><b>${ms.xp}</b><span>本月 XP</span></div>
+      <div class="stat"><b>${ms.count}</b><span>本月完成</span></div>
+      <div class="stat"><b>${state.streak}</b><span>当前连击</span></div>
+      <div class="stat"><b>${longN}</b><span>长线任务</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">${bars}</div>
+    <ul class="report-text">${tips.map(t=>`<li>${t}</li>`).join("")}</ul>`;
+}
+function monthlyReview(){
+  const mk = monthKey();
+  if(state.reviewMonth === mk){ toast("本月复盘已生成，可继续在下方查看"); renderReview(); return; }
+  state.reviewMonth = mk;
+  checkAchievements();
+  save(); renderAll();
+  toast("本月复盘已生成，月度成就已核算");
+}
+
+/* ================= 梅花易数引擎 ================= */
+const BAGUA = {
+  1:{name:"乾",symbol:"☰",wu:"金",yao:[1,1,1],nature:"天"},
+  2:{name:"兑",symbol:"☱",wu:"金",yao:[1,1,0],nature:"泽"},
+  3:{name:"离",symbol:"☲",wu:"火",yao:[1,0,1],nature:"火"},
+  4:{name:"震",symbol:"☳",wu:"木",yao:[1,0,0],nature:"雷"},
+  5:{name:"巽",symbol:"☴",wu:"木",yao:[0,1,1],nature:"风"},
+  6:{name:"坎",symbol:"☵",wu:"水",yao:[0,1,0],nature:"水"},
+  7:{name:"艮",symbol:"☶",wu:"土",yao:[0,0,1],nature:"山"},
+  8:{name:"坤",symbol:"☷",wu:"土",yao:[0,0,0],nature:"地"}
+};
+const GUA64 = {
+  "1-1":"乾为天 · 刚健进取","1-2":"天泽履 · 谨慎而行","1-3":"天火同人 · 协同合作","1-4":"天雷无妄 · 顺势不妄为",
+  "1-5":"天风姤 · 机遇相遇","1-6":"天水讼 · 避免争讼","1-7":"天山遁 · 适时退避","1-8":"天地否 · 闭塞守成",
+  "2-1":"泽天夬 · 果断决断","2-2":"兑为泽 · 悦纳交流","2-3":"泽火革 · 变革更新","2-4":"泽雷随 · 顺势跟随",
+  "2-5":"泽风大过 · 负担过重需减负","2-6":"泽水困 · 困顿坚守","2-7":"泽山咸 · 感应有应","2-8":"泽地萃 · 聚集资源",
+  "3-1":"火天大有 · 收获丰盛","3-2":"火泽睽 · 分歧拉扯","3-3":"离为火 · 光明依附","3-4":"火雷噬嗑 · 突破阻碍",
+  "3-5":"火风鼎 · 立新局面","3-6":"火水未济 · 尚未成功待进","3-7":"火山旅 · 在外奔波","3-8":"火地晋 · 晋升前进",
+  "4-1":"雷天大壮 · 声势壮大","4-2":"雷泽归妹 · 归位守分","4-3":"雷火丰 · 丰盛之时","4-4":"震为雷 · 震动警醒",
+  "4-5":"雷风恒 · 长久坚持","4-6":"雷水解 · 缓解纾困","4-7":"雷山小过 · 小步越过","4-8":"雷地豫 · 愉悦预备",
+  "5-1":"风天小畜 · 小有积蓄","5-2":"风泽中孚 · 诚信待人","5-3":"风火家人 · 内部经营","5-4":"风雷益 · 增益扶持",
+  "5-5":"巽为风 · 顺势传播","5-6":"风水涣 · 离散疏导","5-7":"风山渐 · 循序渐进","5-8":"风地观 · 观察审视",
+  "6-1":"水天需 · 耐心等待","6-2":"水泽节 · 节制有度","6-3":"水火既济 · 已成局面","6-4":"水雷屯 · 初创艰难",
+  "6-5":"水风井 · 养人不竭 · 持续产出","6-6":"坎为水 · 险中求进","6-7":"水山蹇 · 险阻谨慎","6-8":"水地比 · 亲近依托",
+  "7-1":"山天大畜 · 厚积储备","7-2":"山泽损 · 减损节制","7-3":"山火贲 · 修饰包装","7-4":"山雷颐 · 颐养积累",
+  "7-5":"山风蛊 · 整饬积弊","7-6":"山水蒙 · 启蒙学习","7-7":"艮为山 · 知止安稳","7-8":"山地剥 · 剥落收缩",
+  "8-1":"地天泰 · 通泰顺畅","8-2":"地泽临 · 主动临近","8-3":"地火明夷 · 韬光养晦","8-4":"地雷复 · 转机回复",
+  "8-5":"地风升 · 稳步上升","8-6":"地水师 · 率众行事","8-7":"地山谦 · 谦逊受益","8-8":"坤为地 · 承载包容"
+};
+const SHENG = {金:"水",水:"木",木:"火",火:"土",土:"金"};
+const KE = {金:"木",木:"土",土:"水",水:"火",火:"金"};
+
+/* ================= 本地八字四柱引擎 ================= */
+const GAN = "甲乙丙丁戊己庚辛壬癸";
+const ZHI = "子丑寅卯辰巳午未申酉戌亥";
+const WUXING_GAN = {甲:"木",乙:"木",丙:"火",丁:"火",戊:"土",己:"土",庚:"金",辛:"金",壬:"水",癸:"水"};
+const YANG_GAN = new Set(["甲","丙","戊","庚","壬"]);
+const WUXING_ZHI = {子:"水",丑:"土",寅:"木",卯:"木",辰:"土",巳:"火",午:"火",未:"土",申:"金",酉:"金",戌:"土",亥:"水"};
+const NAYIN_PAIRS = [
+  ["甲子","乙丑","海中金"],["丙寅","丁卯","炉中火"],["戊辰","己巳","大林木"],["庚午","辛未","路旁土"],["壬申","癸酉","剑锋金"],
+  ["甲戌","乙亥","山头火"],["丙子","丁丑","涧下水"],["戊寅","己卯","城头土"],["庚辰","辛巳","白蜡金"],["壬午","癸未","杨柳木"],
+  ["甲申","乙酉","泉中水"],["丙戌","丁亥","屋上土"],["戊子","己丑","霹雳火"],["庚寅","辛卯","松柏木"],["壬辰","癸巳","长流水"],
+  ["甲午","乙未","沙中金"],["丙申","丁酉","山下火"],["戊戌","己亥","平地木"],["庚子","辛丑","壁上土"],["壬寅","癸卯","金箔金"],
+  ["甲辰","乙巳","覆灯火"],["丙午","丁未","天河水"],["戊申","己酉","大驿土"],["庚戌","辛亥","钗钏金"],["壬子","癸丑","桑柘木"],
+  ["甲寅","乙卯","大溪水"],["丙辰","丁巳","沙中土"],["戊午","己未","天上火"],["庚申","辛酉","石榴木"],["壬戌","癸亥","大海水"]
+];
+const NAYIN = {};
+NAYIN_PAIRS.forEach(p=>{ NAYIN[p[0]]=p[2]; NAYIN[p[1]]=p[2]; });
+const SHICHEN = [
+  {label:"子时（23:00–00:59）", br:0},{label:"丑时（01:00–02:59）", br:1},
+  {label:"寅时（03:00–04:59）", br:2},{label:"卯时（05:00–06:59）", br:3},
+  {label:"辰时（07:00–08:59）", br:4},{label:"巳时（09:00–10:59）", br:5},
+  {label:"午时（11:00–12:59）", br:6},{label:"未时（13:00–14:59）", br:7},
+  {label:"申时（15:00–16:59）", br:8},{label:"酉时（17:00–18:59）", br:9},
+  {label:"戌时（19:00–20:59）", br:10},{label:"亥时（21:00–22:59）", br:11}
+];
+/* 节气近似分界：进入某月支的公历日期（月,日,月支序号） */
+const SOLAR_CUT = [
+  [1,6,1],[2,4,2],[3,6,3],[4,5,4],[5,6,5],[6,6,6],
+  [7,7,7],[8,8,8],[9,8,9],[10,8,10],[11,7,11],[12,7,0]
+];
+function monthBranch(m, d){
+  let br = 0;
+  SOLAR_CUT.forEach(c=>{ if(m>c[0] || (m===c[0] && d>=c[1])) br=c[2]; });
+  return br;
+}
+function tenGod(dayGan, otherGan){
+  if(dayGan===otherGan) return "日主";
+  const dw = WUXING_GAN[dayGan], ow = WUXING_GAN[otherGan];
+  const sameYin = YANG_GAN.has(dayGan) === YANG_GAN.has(otherGan);
+  if(dw===ow) return sameYin?"比肩":"劫财";
+  if(SHENG[dw]===ow) return sameYin?"食神":"伤官";
+  if(KE[dw]===ow) return sameYin?"偏财":"正财";
+  if(KE[ow]===dw) return sameYin?"七杀":"正官";
+  if(SHENG[ow]===dw) return sameYin?"偏印":"正印";
+  return "—";
+}
+function computeBazi(y, m, d, hourBr){
+  // 年柱：立春（约 2/4）前归上一年
+  const yy = (m>2 || (m===2 && d>=4)) ? y : y-1;
+  const yStem = ((yy-4)%10+10)%10, yBr = ((yy-4)%12+12)%12;
+  const mb = monthBranch(m, d);
+  const yStart = ((yStem%5)*2+2)%10;               // 五虎遁，寅月起手
+  const mStem = (yStart + (mb-2+12)%12) % 10;
+  // 日柱：以 2000-01-01 戊午日（六十甲子序号 54）为基准
+  const diff = Math.floor((Date.UTC(y,m-1,d) - Date.UTC(2000,0,1)) / 86400000);
+  const di = ((54+diff)%60+60)%60;
+  const dStem = di%10, dBr = di%12;
+  const hStart = (dStem%5)*2;                       // 五鼠遁，子时起手
+  const hStem = (hStart+hourBr)%10;
+  const rows = [
+    {gan:GAN[yStem], zhi:ZHI[yBr], role:"年柱", god:tenGod(GAN[dStem],GAN[yStem])},
+    {gan:GAN[mStem], zhi:ZHI[mb],  role:"月柱", god:tenGod(GAN[dStem],GAN[mStem])},
+    {gan:GAN[dStem], zhi:ZHI[dBr], role:"日主", god:"日主"},
+    {gan:GAN[hStem], zhi:ZHI[hourBr], role:"时柱", god:tenGod(GAN[dStem],GAN[hStem])}
+  ];
+  rows.forEach(p=> p.nayin = NAYIN[p.gan+p.zhi] || "");
+  return {
+    pillars: rows,
+    dayMaster: GAN[dStem],
+    dayMasterWu: WUXING_GAN[GAN[dStem]],
+    yearZhi: ZHI[yBr]
+  };
+}
+
+function parseNumbers(raw){
+  const s = raw.trim();
+  if(!s) return null;
+  const tokens = s.split(/\s+/).filter(Boolean).map(Number).filter(n=>!isNaN(n)&&n>0);
+  if(tokens.length===2) return {up:tokens[0],down:tokens[1],dong:tokens[0]+tokens[1]};
+  if(tokens.length===3) return {up:tokens[0],down:tokens[1],dong:tokens[2]};
+  if(tokens.length===1 && s.length===1) return {up:tokens[0],down:tokens[0],dong:tokens[0]};
+  if(s.length>=2){ const mid=Math.ceil(s.length/2); const a=+s.slice(0,mid), b=+s.slice(mid); if(a>0&&b>0) return {up:a,down:b,dong:a+b}; }
+  return null;
+}
+function mod8(n){ return ((n-1)%8)+1; }
+function mod6(n){ return ((n-1)%6)+1; }
+function yaoToGua(three){ // [初,二,三] -> 卦号
+  for(const k of Object.keys(BAGUA)){ if(BAGUA[k].yao.join()===three.join()) return +k; }
+  return 1;
+}
+function relation(useWu, bodyWu){
+  if(useWu===bodyWu) return {label:"体用比和", cls:"good", text:"内外同气，节奏顺畅，事情按既有路径推进即可。"};
+  if(SHENG[useWu]===bodyWu) return {label:"用生体 · 得助", cls:"good", text:"外部资源、他人助力会偏向你，适合主动联络导师、合作方与平台。"};
+  if(SHENG[bodyWu]===useWu) return {label:"体生用 · 耗泄", cls:"warn", text:"需要你持续付出与输出，回报在后段；注意分配精力，不要被支线吸干主线。"};
+  if(KE[bodyWu]===useWu) return {label:"体克用 · 劳而可得", cls:"warn", text:"需要主动经营才能拿下，事在人为，适合啃硬任务。"};
+  return {label:"用克体 · 阻力", cls:"warn", text:"外部约束与竞争感偏重，不宜硬碰；先守节奏、补短板，等时机转向再发力。"};
+}
+function castGua(raw){
+  const p = parseNumbers(raw);
+  if(!p) return null;
+  const upN=mod8(p.up), downN=mod8(p.down), dong=mod6(p.dong);
+  const up=BAGUA[upN], down=BAGUA[downN];
+  const ben = [...down.yao, ...up.yao]; // index0初爻…index5上爻
+  // 体用
+  const useIsUp = dong>3;
+  const bodyGua = useIsUp?down:up, useGua = useIsUp?up:down;
+  // 互卦：二三四 / 三四五
+  const huDown = [ben[1],ben[2],ben[3]], huUp=[ben[2],ben[3],ben[4]];
+  const huDownN=yaoToGua(huDown), huUpN=yaoToGua(huUp);
+  // 变卦
+  const bian=[...ben]; bian[dong-1]=bian[dong-1]?0:1;
+  const bianDownN=yaoToGua(bian.slice(0,3)), bianUpN=yaoToGua(bian.slice(3,6));
+  const rel = relation(useGua.wu, bodyGua.wu);
+  return {
+    dong, upN, downN,
+    ben:{guas:[downN,upN], yao:ben, name:GUA64[`${upN}-${downN}`]||"本卦", body:bodyGua, use:useGua, useIsUp},
+    hu:{guas:[huDownN,huUpN], yao:[...BAGUA[huDownN].yao,...BAGUA[huUpN].yao], name:GUA64[`${huUpN}-${huDownN}`]||"互卦"},
+    bian:{guas:[bianDownN,bianUpN], yao:bian, name:GUA64[`${bianUpN}-${bianDownN}`]||"变卦"},
+    rel
+  };
+}
+function yaoHtml(yaoArr, dongIdx, highlight){
+  return yaoArr.map((y,i)=>{
+    const dongCls = (highlight && i===dongIdx-1)?"dong":"";
+    const mark = (highlight && i===dongIdx-1)?`<span class="yao-mark">动</span>`:"";
+    return `<div class="yao ${y?"yang":"yin"} ${dongCls}">${mark}</div>`;
+  }).join("");
+}
+function renderGuaCards(g){
+  const cards = [
+    {title:"本卦 · 现状", g:g.ben, dong:g.dong, hl:true},
+    {title:"互卦 · 过程", g:g.hu, dong:0, hl:false},
+    {title:"变卦 · 结果", g:g.bian, dong:0, hl:false}
+  ];
+  document.getElementById("guaCards").innerHTML = cards.map(c=>`
+    <div class="gua-card">
+      <h4>${c.title}</h4>
+      <div class="gua-lines">${yaoHtml(c.g.yao, c.dong, c.hl)}</div>
+      <div class="gua-name">${escapeHtml(c.g.name)}</div>
+      <div class="gua-note">${c.g.guas.map(n=>BAGUA[n].name+" "+BAGUA[n].nature).join(" · ")}</div>
+    </div>`).join("");
+}
+/* 当前卦象 / 八字缓存 */
+let currentGua = null, currentGuaRaw = "";
+let currentBazi = null, currentBirth = null;
+
+/* ===== 卦象本地结果：仅展示结果标签与体用关系，不附固定模板话术 ===== */
+function renderLocalGua(g, raw){
+  const r = g.rel;
+  document.getElementById("guaInterpret").innerHTML = `
+    <div class="tag-line">
+      <span class="tag ${r.cls}">${r.label}</span>
+      <span class="tag">体卦 ${g.ben.body.name} ${g.ben.body.wu}</span>
+      <span class="tag">用卦 ${g.ben.use.name} ${g.ben.use.wu}</span>
+      <span class="tag">动爻 第 ${g.dong} 爻</span>
+    </div>
+    <p>${escapeHtml(r.text)}</p>
+    <p style="font-size:12px;color:var(--faint)">起卦数字：${escapeHtml(raw)} · 本结果为民俗文化娱乐，不构成决策依据。</p>`;
+  renderGuaAiBlock();
+}
+function renderGuaAiBlock(){
+  const box = document.getElementById("guaAiBlock");
+  if(!box) return;
+  if(!aiEnabled()){ box.innerHTML = ""; return; }
+  box.innerHTML = `
+    <div class="ai-btn-row">
+      <button class="btn primary sm" data-action="gua-ai">AI 生成个性化解读</button>
+      <span class="ai-hint">结合当前选中方向调用 ${escapeHtml(currentProvider().name)}</span>
+    </div>
+    <div id="guaAiText" class="ai-result" style="display:none;margin-top:12px"></div>`;
+}
+
+/* ===== 方向文本（动态读取当前赛道模块 + 自定义补充） ===== */
+function dirsToText(){
+  const dirs = currentDirections();
+  if(!dirs.length) return "（用户未选择方向，请结合卦象与命盘给出通用建议）";
+  return dirs.map(d => `· ${d.name}${d.tag?"（"+d.tag+"）":""}`).join("\n");
+}
+
+/* ===== 大模型通用调用（OpenAI 兼容协议） ===== */
+async function callLlm(systemPrompt, userPrompt){
+  if(!aiEnabled()) throw new Error("未配置 API Key");
+  const p = currentProvider();
+  const model = aiSettings.model.trim() || p.defaultModel;
+  const resp = await fetch(p.endpoint, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+aiSettings.apiKey.trim()},
+    body: JSON.stringify({model, messages:[
+      {role:"system", content:systemPrompt},
+      {role:"user", content:userPrompt}
+    ], temperature:0.8})
+  });
+  if(!resp.ok){
+    let msg = "";
+    try{ const e = await resp.json(); msg = e.error?.message || ""; }catch(_){}
+    throw new Error(`接口返回 ${resp.status}${msg?"："+msg.slice(0,120):""}`);
+  }
+  const data = await resp.json();
+  const content = data.choices?.[0]?.message?.content;
+  if(!content) throw new Error("接口未返回解读内容");
+  return content.trim();
+}
+function renderAiText(elId, text){
+  const el = document.getElementById(elId);
+  if(!el) return;
+  const blocks = text.split(/\n{2,}/).map(b=>b.trim()).filter(Boolean);
+  el.innerHTML = blocks.map(b=>{
+    if(b.startsWith("## ") || b.startsWith("### ")){
+      return `<h5>${escapeHtml(b.replace(/^#{2,3}\s/,""))}</h5>`;
+    }
+    return `<p>${escapeHtml(b).replace(/\n/g,"<br>")}</p>`;
+  }).join("") + `<div class="ai-foot">由 ${escapeHtml(currentProvider().name)} · ${escapeHtml(aiSettings.model.trim()||currentProvider().defaultModel)} 生成，仅供民俗娱乐参考。</div>`;
+  el.style.display = "flex";
+}
+
+/* ===== 卦象 AI 解读 ===== */
+async function runGuaAi(){
+  if(!currentGua) return;
+  const g = currentGua;
+  const textEl = document.getElementById("guaAiText");
+  const btn = document.querySelector('[data-action="gua-ai"]');
+  if(btn){ btn.disabled = true; btn.textContent = "生成中…"; }
+  if(textEl){ textEl.innerHTML = `<div class="ai-loading"><span class="spinner"></span>正在结合卦象与当前方向生成解读…</div>`; textEl.style.display = "flex"; }
+  const sys = "你是传统民俗文化顾问，依据梅花易数卦象与用户当前职业方向给出个性化解读。要求：语气克制务实，不做宿命断言；按「现状 / 过程 / 结果 / 行动建议」分小节；500 字以内；末尾注明仅供娱乐参考。";
+  const user = `起卦数字：${currentGuaRaw}
+本卦：${g.ben.name}（上卦 ${BAGUA[g.ben.guas[1]].name} ${BAGUA[g.ben.guas[1]].wu}，下卦 ${BAGUA[g.ben.guas[0]].name} ${BAGUA[g.ben.guas[0]].wu}）
+互卦：${g.hu.name}
+变卦：${g.bian.name}
+体卦：${g.ben.body.name}（${g.ben.body.wu}）；用卦：${g.ben.use.name}（${g.ben.use.wu}）；体用关系：${g.rel.label}；动爻：第 ${g.dong} 爻。
+用户当前关注方向：
+${dirsToText()}
+请结合以上方向给出个性化解读。`;
+  try{
+    const text = await callLlm(sys, user);
+    renderAiText("guaAiText", text);
+  }catch(e){
+    if(textEl) textEl.innerHTML = `<p style="color:var(--red)">AI 解读失败：${escapeHtml(e.message)}</p>`;
+    toast("AI 解读失败：Key 或网络异常");
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "AI 生成个性化解读"; }
+  }
+}
+
+/* ===== 八字排盘 ===== */
+function initBaziForm(){
+  document.getElementById("bzHour").innerHTML = SHICHEN.map((s,i)=>`<option value="${i}">${s.label}</option>`).join("");
+  document.getElementById("bzDate").value = aiSettings.birth.date || "";
+  document.getElementById("bzHour").value = aiSettings.birth.hour ?? 2;
+  document.getElementById("bzPlace").value = aiSettings.birth.place || "";
+}
+function castBazi(){
+  const dv = document.getElementById("bzDate").value;
+  if(!dv){ toast("请先选择出生日期"); return; }
+  const [y,m,d] = dv.split("-").map(Number);
+  const br = +document.getElementById("bzHour").value;
+  const place = document.getElementById("bzPlace").value.trim();
+  currentBirth = {date:dv, hour:br, place};
+  aiSettings.birth = currentBirth; saveAi();
+  currentBazi = computeBazi(y,m,d,br);
+  renderBazi();
+}
+function renderBazi(){
+  if(!currentBazi || !currentBirth) return;
+  document.getElementById("bzResult").style.display = "block";
+  document.getElementById("bzPillars").innerHTML = currentBazi.pillars.map(p=>`
+    <div class="bazi-cell">
+      <div class="pillar">${p.gan}${p.zhi}</div>
+      <div class="role">${p.role} · ${p.god}</div>
+      <div class="nayin">${p.nayin}</div>
+    </div>`).join("");
+  document.getElementById("bzMeta").textContent = `${currentBirth.date} · ${SHICHEN[currentBirth.hour].label}${currentBirth.place?" · "+currentBirth.place:""}`;
+  document.getElementById("bzLocalNote").textContent = aiEnabled()
+    ? "四柱已由本地排盘完成；下方可调用 AI，结合当前选中方向生成个性化民俗研判。"
+    : "排盘为本地计算结果；未配置 API Key，仅展示四柱与十神，不附固定方向研判话术。";
+  renderBaziAiBlock();
+}
+function renderBaziAiBlock(){
+  const box = document.getElementById("bzAiBlock");
+  if(!box) return;
+  if(!aiEnabled()){ box.innerHTML = ""; return; }
+  box.innerHTML = `
+    <div class="ai-btn-row">
+      <button class="btn primary sm" data-action="bazi-ai">AI 生成方向研判</button>
+      <span class="ai-hint">结合当前选中方向调用 ${escapeHtml(currentProvider().name)}</span>
+    </div>
+    <div id="bzAiText" class="ai-result" style="display:none;margin-top:12px"></div>`;
+}
+async function runBaziAi(){
+  if(!currentBazi) return;
+  const b = currentBazi;
+  const textEl = document.getElementById("bzAiText");
+  const btn = document.querySelector('[data-action="bazi-ai"]');
+  if(btn){ btn.disabled = true; btn.textContent = "生成中…"; }
+  if(textEl){ textEl.innerHTML = `<div class="ai-loading"><span class="spinner"></span>正在结合四柱与当前方向生成研判…</div>`; textEl.style.display = "flex"; }
+  const pillarText = b.pillars.map(p=>`${p.role} ${p.gan}${p.zhi}（${p.god} · ${p.nayin}）`).join("，");
+  const sys = "你是传统民俗文化顾问，依据八字四柱与用户当前职业方向给出民俗视角研判。要求：逐方向给出匹配倾向（高 / 较契合 / 一般 / 备选）与简短理由、节奏建议；不做宿命断言；600 字以内；末尾注明仅供娱乐参考，不构成职业决策依据。";
+  const user = `出生：${currentBirth.date} ${SHICHEN[currentBirth.hour].label}；出生地：${currentBirth.place||"未填写"}。
+四柱：${pillarText}；日主 ${b.dayMaster}（${b.dayMasterWu}）。
+用户当前关注方向：
+${dirsToText()}
+请逐方向给出研判。`;
+  try{
+    const text = await callLlm(sys, user);
+    renderAiText("bzAiText", text);
+  }catch(e){
+    if(textEl) textEl.innerHTML = `<p style="color:var(--red)">AI 研判失败：${escapeHtml(e.message)}</p>`;
+    toast("AI 研判失败：Key 或网络异常");
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = "AI 生成方向研判"; }
+  }
+}
+
+/* ===== AI 设置面板 ===== */
+function refreshAiStatus(){
+  const on = aiEnabled();
+  document.getElementById("aiStatusText").textContent = on ? `AI 已启用 · ${currentProvider().name}` : "本地模式 · 未配置 API Key";
+  const badge = document.getElementById("aiStatusBadge");
+  badge.className = "ai-status " + (on?"on":"off");
+  badge.textContent = on ? `已启用 · ${currentProvider().name}` : "本地模式";
+  document.getElementById("aiProviderNote").textContent = currentProvider().note;
+  document.getElementById("aiModel").placeholder = "默认：" + currentProvider().defaultModel;
+}
+function renderAiPills(){
+  const box = document.getElementById("aiDirPills");
+  if(!box) return;
+  box.innerHTML = state.tracks.map(t=>{
+    const checked = aiSettings.dirs===null || aiSettings.dirs.includes(t.id);
+    return `<label><input type="checkbox" class="ai-dir" value="${t.id}" ${checked?"checked":""}> ${escapeHtml(t.name)}</label>`;
+  }).join("") || `<span class="ai-hint">暂无赛道模块，可在「赛道管理」中新建后回来勾选。</span>`;
+}
+function fillAiForm(){
+  document.getElementById("aiProvider").value = aiSettings.provider;
+  document.getElementById("aiKey").value = aiSettings.apiKey;
+  document.getElementById("aiModel").value = aiSettings.model;
+  document.getElementById("aiCustomDirs").value = aiSettings.customDirs;
+  refreshAiStatus();
+  renderAiPills();
+}
+function saveAiSettings(){
+  aiSettings.provider = document.getElementById("aiProvider").value;
+  aiSettings.apiKey = document.getElementById("aiKey").value.trim();
+  aiSettings.model = document.getElementById("aiModel").value.trim();
+  aiSettings.customDirs = document.getElementById("aiCustomDirs").value;
+  aiSettings.dirs = [...document.querySelectorAll(".ai-dir:checked")].map(x=>x.value);
+  saveAi(); refreshAiStatus();
+  const ga = document.getElementById("guaAiText"); if(ga){ ga.style.display="none"; ga.innerHTML=""; }
+  const ba = document.getElementById("bzAiText"); if(ba){ ba.style.display="none"; ba.innerHTML=""; }
+  renderGuaAiBlock(); renderBaziAiBlock();
+  renderBazi();
+  toast(aiEnabled() ? "AI 设置已保存，解读将调用大模型" : "已切换为本地模式");
+}
+
+/* ================= 视图切换 ================= */
+function switchView(v){
+  document.querySelectorAll(".view").forEach(x=>x.classList.remove("active"));
+  document.getElementById("view-"+v).classList.add("active");
+  document.querySelectorAll("#navTabs button").forEach(b=>b.classList.toggle("active", b.dataset.view===v));
+}
+
+/* ================= 任务弹窗 ================= */
+let editingTaskId = null;
+function openTaskModal(editId, presetTrack){
+  editingTaskId = editId||null;
+  const t = editId? state.tasks.find(x=>x.id===editId) : null;
+  document.getElementById("taskModalTitle").textContent = t?"编辑任务":"新建任务";
+  document.getElementById("fText").value = t?t.text:"";
+  document.getElementById("fXp").value = t?t.xp:20;
+  document.getElementById("fRepeat").value = t?t.repeat:"daily";
+  document.getElementById("fStart").value = t?(t.start||""):todayStr();
+  document.getElementById("fDue").value = t?(t.due||""):"";
+  // 赛道下拉
+  document.getElementById("fTrack").innerHTML = state.tracks.map(tr=>
+    `<option value="${tr.id}">${escapeHtml(tr.name)}</option>`).join("");
+  document.getElementById("fTrack").value = t?t.trackId:(presetTrack||state.tracks[0].id);
+  // 周几
+  const pills = document.getElementById("fWeekPills");
+  pills.innerHTML = WEEK_NAMES.map((n,i)=>`
+    <label><input type="checkbox" class="f-week" value="${i+1}" ${t&&t.weekDays.includes(i+1)?"checked":""}> ${n}</label>`).join("");
+  // 每月几号
+  document.getElementById("fMonthDay").innerHTML = Array.from({length:31},(_,i)=>`<option value="${i+1}">${i+1} 日</option>`).join("");
+  if(t) document.getElementById("fMonthDay").value = t.monthDay||1;
+  toggleRepeatRows();
+  document.getElementById("fDelete").style.display = t?"":"none";
+  document.getElementById("taskModalMask").classList.add("show");
+}
+function toggleRepeatRows(){
+  const r = document.getElementById("fRepeat").value;
+  document.getElementById("fWeekRow").style.display = r==="weekly"?"":"none";
+  document.getElementById("fMonthRow").style.display = r==="monthly"?"":"none";
+  document.getElementById("fDateRow").style.display = r==="once"?"":"none";
+}
+function closeTaskModal(){ document.getElementById("taskModalMask").classList.remove("show"); }
+
+function saveTask(){
+  const text = document.getElementById("fText").value.trim();
+  if(!text){ toast("请填写任务名称"); return; }
+  const trackId = document.getElementById("fTrack").value;
+  const xp = Math.max(5, Math.min(200, +document.getElementById("fXp").value||20));
+  const repeat = document.getElementById("fRepeat").value;
+  const weekDays = [...document.querySelectorAll(".f-week:checked")].map(x=>+x.value);
+  if(repeat==="weekly" && !weekDays.length){ toast("请选择每周几执行"); return; }
+  const monthDay = +document.getElementById("fMonthDay").value;
+  const start = document.getElementById("fStart").value;
+  const due = document.getElementById("fDue").value;
+  const data = {text, trackId, xp, repeat, weekDays, monthDay, start, due};
+  if(editingTaskId){
+    const t = state.tasks.find(x=>x.id===editingTaskId);
+    Object.assign(t, data);
+    toast("任务已更新");
+  }else{
+    state.tasks.push({id:uid(), ...data, done:{}});
+    toast("新任务已加入队列");
+  }
+  save(); closeTaskModal(); renderAll();
+}
+
+/* ================= 赛道弹窗 ================= */
+let editingTrackId = null;
+let trackColor = TRACK_COLORS[0];
+function openTrackModal(editId){
+  editingTrackId = editId||null;
+  const tr = editId? state.tracks.find(x=>x.id===editId):null;
+  document.getElementById("trackModalTitle").textContent = tr?"编辑赛道":"新建赛道";
+  document.getElementById("tName").value = tr?tr.name:"";
+  document.getElementById("tTag").value = tr?(tr.tag||""):"";
+  document.getElementById("tGoal").value = tr?tr.goal:500;
+  trackColor = tr?tr.color:TRACK_COLORS[0];
+  renderSwatches();
+  document.getElementById("tDelete").style.display = tr?"":"none";
+  document.getElementById("trackModalMask").classList.add("show");
+}
+function renderSwatches(){
+  document.getElementById("tColors").innerHTML = TRACK_COLORS.map(c=>
+    `<div class="swatch ${c===trackColor?"active":""}" data-color="${c}" style="background:${c}"></div>`).join("");
+}
+function closeTrackModal(){ document.getElementById("trackModalMask").classList.remove("show"); }
+function saveTrack(){
+  const name = document.getElementById("tName").value.trim();
+  if(!name){ toast("请填写赛道名称"); return; }
+  const data = {name, tag:document.getElementById("tTag").value.trim(),
+    goal:Math.max(50,+document.getElementById("tGoal").value||500), color:trackColor};
+  if(editingTrackId){
+    Object.assign(state.tracks.find(x=>x.id===editingTrackId), data);
+    toast("赛道已更新");
+  }else{
+    state.tracks.push({id:uid(), ...data});
+    toast("新赛道已创建");
+  }
+  save(); closeTrackModal(); renderAll();
+}
+
+/* ================= 成就弹窗 ================= */
+function closeAchModal(){ document.getElementById("achModalMask").classList.remove("show"); }
+function saveCustomAch(){
+  const name = document.getElementById("aName").value.trim();
+  const desc = document.getElementById("aDesc").value.trim();
+  const type = document.getElementById("aType").value;
+  const target = Math.max(1,+document.getElementById("aTarget").value||1);
+  if(!name){ toast("请填写成就名称"); return; }
+  state.customAch.push({id:uid(), name, desc:desc||"自定义成就", type, target});
+  checkAchievements();
+  save(); closeAchModal(); renderAll();
+  toast("自定义成就已加入成就墙");
+}
+
+/* ================= 事件绑定 ================= */
+function bindEvents(){
+  // 导航
+  document.querySelectorAll("#navTabs button").forEach(b=>{
+    b.addEventListener("click", ()=>switchView(b.dataset.view));
+  });
+  // 任务勾选
+  document.addEventListener("change", e=>{
+    const lab = e.target.closest("label.task");
+    if(!lab) return;
+    const task = state.tasks.find(x=>x.id===lab.dataset.task);
+    if(!task) return;
+    const ds = lab.dataset.date||todayStr();
+    const today = todayStr();
+    const checked = e.target.checked;
+    if(ds!==today){
+      task.done[ds] = checked; save(); renderAll(); return;
+    }
+    normalizeCounters();
+    if(checked){
+      task.done[today]=true;
+      grant(task.xp, task.trackId);
+      state.counters.perTrackCount[task.trackId]=(state.counters.perTrackCount[task.trackId]||0)+1;
+      state.counters.monthCount[monthKey()]=(state.counters.monthCount[monthKey()]||0)+1;
+      toast(`任务完成 · <b>+${task.xp} XP</b>`);
+    }else{
+      delete task.done[today];
+      revoke(task.xp, task.trackId);
+      state.counters.perTrackCount[task.trackId]=Math.max(0,(state.counters.perTrackCount[task.trackId]||0)-1);
+      state.counters.monthCount[monthKey()]=Math.max(0,(state.counters.monthCount[monthKey()]||0)-1);
+    }
+    checkAchievements(); save(); renderAll();
+  });
+  // 编辑 / 新建按钮委托
+  document.addEventListener("click", e=>{
+    const edit = e.target.closest("[data-edit]");
+    if(edit){ e.preventDefault(); openTaskModal(edit.dataset.edit); return; }
+    const newTask = e.target.closest("[data-track-newtask]");
+    if(newTask){ e.preventDefault(); openTaskModal(null, newTask.dataset.trackNewtask); return; }
+  });
+  // 顶部新建任务
+  document.getElementById("btnNewTaskToday").addEventListener("click", ()=>openTaskModal());
+  document.getElementById("btnNewTaskToday2").addEventListener("click", ()=>openTaskModal());
+  // 任务弹窗
+  document.getElementById("fRepeat").addEventListener("change", toggleRepeatRows);
+  document.getElementById("fSave").addEventListener("click", saveTask);
+  document.getElementById("fCancel").addEventListener("click", closeTaskModal);
+  document.getElementById("fDelete").addEventListener("click", ()=>{
+    if(!editingTaskId) return;
+    if(confirm("确定删除这个任务？历史完成记录一并移除。")){
+      state.tasks = state.tasks.filter(x=>x.id!==editingTaskId);
+      save(); closeTaskModal(); renderAll(); toast("任务已删除");
+    }
+  });
+  document.getElementById("taskModalMask").addEventListener("click", e=>{ if(e.target===e.currentTarget) closeTaskModal(); });
+  // 赛道弹窗
+  document.getElementById("btnNewTrack").addEventListener("click", ()=>openTrackModal());
+  document.getElementById("trackManage").addEventListener("click", e=>{
+    const ed = e.target.closest("[data-track-edit]");
+    if(ed) openTrackModal(ed.dataset.trackEdit);
+  });
+  document.getElementById("tSave").addEventListener("click", saveTrack);
+  document.getElementById("tCancel").addEventListener("click", closeTrackModal);
+  document.getElementById("tDelete").addEventListener("click", ()=>{
+    if(!editingTrackId) return;
+    if(confirm("删除赛道将同时删除其下全部任务，确定继续？")){
+      state.tasks = state.tasks.filter(x=>x.trackId!==editingTrackId);
+      state.tracks = state.tracks.filter(x=>x.id!==editingTrackId);
+      save(); closeTrackModal(); renderAll(); toast("赛道已删除");
+    }
+  });
+  document.getElementById("trackModalMask").addEventListener("click", e=>{ if(e.target===e.currentTarget) closeTrackModal(); });
+  document.getElementById("tColors").addEventListener("click", e=>{
+    const sw = e.target.closest(".swatch");
+    if(sw){ trackColor = sw.dataset.color; renderSwatches(); }
+  });
+  // 成就弹窗
+  document.getElementById("btnNewAch").addEventListener("click", ()=>{
+    document.getElementById("aName").value=""; document.getElementById("aDesc").value="";
+    document.getElementById("aType").value="xp"; document.getElementById("aTarget").value=100;
+    document.getElementById("achModalMask").classList.add("show");
+  });
+  document.getElementById("aSave").addEventListener("click", saveCustomAch);
+  document.getElementById("aCancel").addEventListener("click", closeAchModal);
+  document.getElementById("achModalMask").addEventListener("click", e=>{ if(e.target===e.currentTarget) closeAchModal(); });
+  // 日历
+  document.getElementById("calPrev").addEventListener("click", ()=>{ calCursor=new Date(calCursor.getFullYear(),calCursor.getMonth()-1,1); renderCalendar(); });
+  document.getElementById("calNext").addEventListener("click", ()=>{ calCursor=new Date(calCursor.getFullYear(),calCursor.getMonth()+1,1); renderCalendar(); });
+  document.getElementById("calToday").addEventListener("click", ()=>{ calCursor=new Date(); selectedDate=todayStr(); renderCalendar(); });
+  document.getElementById("calBody").addEventListener("click", e=>{
+    const cell = e.target.closest(".cal-cell");
+    if(!cell) return;
+    selectedDate = cell.dataset.date; renderCalendar();
+  });
+  // 月报
+  document.getElementById("btnMonthlyReview").addEventListener("click", monthlyReview);
+  // 昵称
+  document.getElementById("nickInput").addEventListener("change", e=>{
+    state.nickname = e.target.value.trim()||"旅人"; save(); renderHUD(); toast("昵称已保存");
+  });
+  // 起卦
+  document.getElementById("btnGuaCast").addEventListener("click", castFromInput);
+  document.getElementById("guaInput").addEventListener("keydown", e=>{ if(e.key==="Enter") castFromInput(); });
+  // AI 设置
+  document.getElementById("aiProvider").addEventListener("change", ()=>{
+    aiSettings.provider = document.getElementById("aiProvider").value;
+    refreshAiStatus();
+  });
+  document.getElementById("btnSaveAi").addEventListener("click", saveAiSettings);
+  // 八字排盘
+  document.getElementById("btnBaziCast").addEventListener("click", castBazi);
+  // AI 生成按钮委托
+  document.addEventListener("click", e=>{
+    const act = e.target.closest("[data-action]");
+    if(!act) return;
+    if(act.dataset.action==="gua-ai") runGuaAi();
+    if(act.dataset.action==="bazi-ai") runBaziAi();
+  });
+  // 导出 / 重置
+  const wrap = document.querySelector(".wrap");
+  const exp = document.createElement("button");
+  exp.className="btn ghost sm"; exp.textContent="导出进度";
+  exp.addEventListener("click", ()=>{
+    const blob = new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
+    const a = document.createElement("a"); a.href=URL.createObjectURL(blob);
+    a.download=`工作台进度_${todayStr()}.json`; a.click(); URL.revokeObjectURL(a.href);
+    toast("进度已导出为 JSON");
+  });
+  const rst = document.createElement("button");
+  rst.className="btn danger sm"; rst.textContent="重置全部进度";
+  rst.addEventListener("click", ()=>{
+    if(confirm("确定清空等级、经验、任务与成就？此操作不可恢复。")){
+      state = defaultState(); state.lastActive=todayStr();
+      save(); renderAll(); toast("进度已重置");
+    }
+  });
+  const bar = document.createElement("div");
+  bar.style.cssText="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;justify-content:flex-end;";
+  bar.appendChild(exp); bar.appendChild(rst);
+  document.querySelector(".wrap").appendChild(bar);
+}
+function castFromInput(){
+  const raw = document.getElementById("guaInput").value.trim();
+  const g = castGua(raw);
+  if(!g){ toast("请输入有效数字，如 1353 或 13 53"); return; }
+  currentGua = g; currentGuaRaw = raw;
+  document.getElementById("guaResult").style.display="block";
+  renderGuaCards(g); renderLocalGua(g, raw);
+}
+
+/* ================= 全量渲染 ================= */
+function renderAll(){
+  normalizeCounters();
+  renderDate(); renderHUD(); renderToday(); renderCalendar();
+  renderTracks(); renderAchievements(); renderReview();
+  refreshAiStatus(); renderAiPills();
+  if(currentGua) renderGuaAiBlock();
+  if(currentBazi) renderBaziAiBlock();
+}
+
+/* ================= 启动 ================= */
+load(); normalizeCounters(); resetDailyRoll(); save();
+let aiSettings = loadAi();
+initBaziForm();
+renderAll(); bindEvents();
+fillAiForm();
+// 恢复已保存的生辰并自动排盘
+if(aiSettings.birth.date){
+  const [y,m,d] = aiSettings.birth.date.split("-").map(Number);
+  currentBirth = {...aiSettings.birth};
+  currentBazi = computeBazi(y, m, d, currentBirth.hour);
+  renderBazi();
+}
+checkAchievements(); save();
+</script>
+</body>
+</html>
+<!-- （注：内容由AI生成） -->
